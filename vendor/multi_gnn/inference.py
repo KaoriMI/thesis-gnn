@@ -1,3 +1,9 @@
+# Modifications © 2025 Kaori Ishikawa – Apache-2.0
+#
+# --- Modifications summary -------------------------------------------
+# Fixed errors caused by invalid arguments "avg_tps" and "precrec".
+# ---------------------------------------------------------------------
+
 import torch
 import pandas as pd
 from train_util import AddEgoIds, extract_param, add_arange_ids, get_loaders, evaluate_homo, evaluate_hetero
@@ -57,8 +63,10 @@ def infer_gnn(tr_data, val_data, te_data, tr_inds, val_inds, te_inds, args, data
 
     if args.reverse_mp:
         model = to_hetero(model, te_data.metadata(), aggr='mean')
-    
-    if not (args.avg_tps or args.finetune):
+
+    # Modifications © 2025 Kaori Ishikawa
+    # Removed "avg_tps" from condition as it's no longer in use in the original code.
+    if not args.finetune:
         command = " ".join(sys.argv)
         name = ""
         name = '-'.join(name.split('-')[3:])
@@ -72,9 +80,11 @@ def infer_gnn(tr_data, val_data, te_data, tr_inds, val_inds, te_inds, args, data
 
     logging.info("=> loaded checkpoint (epoch {})".format(start_epoch))
 
+    # Modifications © 2025 Kaori Ishikawa
+    # Removed an argument, "precrec=True", from both evaluate_homo and evaluate_hetero as it's not a valid argument in the original code.
     if not args.reverse_mp:
-        te_f1, te_prec, te_rec = evaluate_homo(te_loader, te_inds, model, te_data, device, args, precrec=True)
-    else:
-        te_f1, te_prec, te_rec = evaluate_hetero(te_loader, te_inds, model, te_data, device, args, precrec=True)
+        te_f1, te_prec, te_rec = evaluate_homo(te_loader, te_inds, model, te_data, device, args)
 
+    else:
+        te_f1, te_prec, te_rec = evaluate_hetero(te_loader, te_inds, model, te_data, device, args)
     wandb.finish()

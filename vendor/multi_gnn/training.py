@@ -1,8 +1,16 @@
+# Modifications © 2025 Kaori Ishikawa – Apache-2.0
+#
+# --- Modifications summary -------------------------------------------
+# ・Import DirGINe class
+# ・Add reference to DirGINe in get_model function.
+# ---------------------------------------------------------------------
 import torch
 import tqdm
 from sklearn.metrics import f1_score
 from train_util import AddEgoIds, extract_param, add_arange_ids, get_loaders, evaluate_homo, evaluate_hetero, save_model, load_model
 from models import GINe, PNA, GATe, RGCN
+
+from models import DirGINe　# Modifications © 2025 Kaori Ishikawa
 from torch_geometric.data import Data, HeteroData
 from torch_geometric.nn import to_hetero, summary
 from torch_geometric.utils import degree
@@ -160,7 +168,14 @@ def get_model(sample_batch, config, args):
             n_classes=2, n_hidden=round(config.n_hidden),
             edge_update=args.emlps, dropout=config.dropout, final_dropout=config.final_dropout, n_bases=None #(maybe)
         )
-    
+    # Modifications © 2025 Kaori Ishikawa
+    if args.model == "dir_gin":
+        model = DirGINe(
+                num_features=n_feats, num_gnn_layers=config.n_gnn_layers, n_classes=2,
+                n_hidden=round(config.n_hidden), residual=False, edge_updates=args.emlps, edge_dim=e_dim,
+                dropout=config.dropout, final_dropout=config.final_dropout
+                )
+
     return model
 
 def train_gnn(tr_data, val_data, te_data, tr_inds, val_inds, te_inds, args, data_config):

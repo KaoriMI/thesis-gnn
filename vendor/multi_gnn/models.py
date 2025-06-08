@@ -1,3 +1,9 @@
+# Modifications © 2025 Kaori Ishikawa – Apache-2.0
+#
+# --- Modifications summary -------------------------------------------
+# ADD Directed GIN model, which supports message passing for both incoming and outgoing.
+# ---------------------------------------------------------------------
+
 import torch.nn as nn
 from torch_geometric.nn import GINEConv, BatchNorm, Linear, GATConv, PNAConv, RGCNConv
 import torch.nn.functional as F
@@ -234,3 +240,85 @@ class RGCN(nn.Module):
         out = x
 
         return x
+
+#Modifications © 2025 Kaori Ishikawa
+
+from directed_graph_util import DirGINEWrapper
+
+class DirGINe(nn.Module):
+
+    """
+    Two-direction GINe by wrapping each GINEConv with DirGINEWrapper.
+    It is created based on original GINe class.
+    """
+    def __init__(self, num_features, num_gnn_layers, n_classes=2,
+                 n_hidden=100, edge_updates=False, residual=True,
+                 edge_dim=None, dropout=0.0, final_dropout=0.5,
+                 dir_alpha=0.5, root_weight=True):
+        super().__init__()
+        self.n_hidden      = n_hidden
+        self.num_gnn_layers = num_gnn_layers
+        self.edge_updates  = edge_updates
+        self.final_dropout = final_dropout
+        self.residual      = residual
+        self.dropout       = dropout
+
+        self.node_emb = nn.Linear(num_features, n_hidden)
+        self.edge_emb = nn.Linear(edge_dim,     n_hidden)
+
+        self.convs        = nn.ModuleList()
+        self.emlps        = nn.ModuleList()
+        self.batch_norms  = nn.ModuleList()
+
+        for _ in range(self.num_gnn_layers):
+            # base GINE
+            base_conv = GINEConv(
+                nn.Sequential(
+                    nn.Linear(n_hidden, n_hidden),
+                    nn.ReLU(),
+                    nn.Linear(n_hidden, n_hidden)),
+                edge_dim=n_hidden)
+
+            base_conv.in_channels  = n_hidden
+            base_conv.out_channels = n_hidden
+
+            # wrap the base to pass the message for both incoming/outgoing.
+            conv = DirGINEWrapper(base_conv,
+                                  alpha       = dir_alpha,
+                                  root_weight = root_weight)
+            self.convs.append(conv)
+
+            self.batch_norms.append(BatchNorm(n_hidden))
+
+            if self.edge_updates:
+                self.emlps.append(nn.Sequential(
+                    nn.Linear(3 * n_hidden, n_hidden),
+                    nn.ReLU(),
+                    nn.Linear(n_hidden, n_hidden)))
+
+        self.mlp = nn.Sequential(
+            Linear(n_hidden * 3, 50), nn.ReLU(), nn.Dropout(final_dropout),
+            Linear(50, 25),          nn.ReLU(), nn.Dropout(final_dropout),
+            Linear(25, n_classes))
+
+    def forward(self, x, edge_index, edge_attr):
+        src, dst  = edge_index
+        x         = self.node_emb(x)
+        edge_attr = self.edge_emb(edge_attr)
+
+        for i in range(self.num_gnn_layers):
+            x_in = x
+            x    = self.convs[i](x, edge_index, edge_attr)
+            x    = F.relu(self.batch_norms[i](x))
+            x    = F.dropout(x, p=self.dropout, training=self.training)
+
+            if self.residual:
+                x = (x + x_in) / 2
+
+            if self.edge_updates:
+                edge_attr = edge_attr + self.emlps[i](
+                    torch.cat([x[src], x[dst], edge_attr], dim=-1)) / 2
+
+        x   = x[edge_index.T].reshape(-1, 2 * self.n_hidden).relu()
+        x   = torch.cat((x, edge_attr.view(-1, edge_attr.shape[1])), 1)
+        return self.mlp(x)
