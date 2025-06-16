@@ -1,16 +1,11 @@
+#todo: clean commenting.
 
 import copy
 import torch
 from torch import nn
-from torch_geometric.nn import GINEConv, BatchNorm, Linear
+from torch_geometric.nn import GINEConv
 from torch import Tensor
-from torch_geometric.typing import (
-    Adj,
-    OptPairTensor,
-    OptTensor,
-    Size,
-    SparseTensor,
-)
+
 
 class DirGINEWrapper(nn.Module):
     """A wrapper for computing Graph convolution edge-aware conv (e.g. GINEConv) on forward and reverse edges.
@@ -57,7 +52,7 @@ class DirGINEWrapper(nn.Module):
         self.conv_out.reset_parameters()
         if self.lin is not None:
             self.lin.reset_parameters()
-    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: OptTensor = None) -> Tensor:
+    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor = None) -> Tensor:
 
         x_in = self.conv_in(x, edge_index, edge_attr)
         x_out = self.conv_out(x, edge_index.flip([0]), edge_attr)
