@@ -59,8 +59,8 @@
   },
     "dir_gin": {
     "params": {
-      "lr": 0.006213266113989207, "n_hidden": 66.00315515631006, "n_mlp_layers": 1, "n_gnn_layers": 2, "loss": "ce",
-      "w_ce1": 1.0000182882773443, "w_ce2": 6.275014431494497, "norm_method": "z_normalize", "dropout": 0.00983468338330501, "final_dropout": 0.10527690625126304
+      "lr": 0.002493218776550881, "n_hidden": 66.00653149460678, "n_mlp_layers": 1, "n_gnn_layers": 2, "loss": "ce",
+      "w_ce1": 1.0007461498591863, "w_ce2": 10.074892592294788, "norm_method": "z_normalize", "dropout": 0.026738899695147096, "final_dropout": 0.15080883321941962, "dir_alpha": 0.36361347488111007
     },
     "bayes_opt_params": {
       "lr": [0.002, 0.007], "n_hidden": [66.0, 66.01], "n_mlp_layers": [1, 1.001], "n_gnn_layers": [2.0, 2.001], "loss": [0.0, 0.1],
