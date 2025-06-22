@@ -306,18 +306,10 @@ class DirGINe(nn.Module):
         x         = self.node_emb(x)
         edge_attr = self.edge_emb(edge_attr)
 
-        for i in range(self.num_gnn_layers):
-            x_in = x
-            x    = self.convs[i](x, edge_index, edge_attr)
-            x    = F.relu(self.batch_norms[i](x))
-            x    = F.dropout(x, p=self.dropout, training=self.training)
-
-            if self.residual:
-                x = (x + x_in) / 2
-
-            if self.edge_updates:
-                edge_attr = edge_attr + self.emlps[i](
-                    torch.cat([x[src], x[dst], edge_attr], dim=-1)) / 2
+            for i in range(self.num_gnn_layers):
+                x = (x + F.relu(self.batch_norms[i](self.convs[i](x, edge_index, edge_attr)))) / 2
+                if self.edge_updates:
+                    edge_attr = edge_attr + self.emlps[i](torch.cat([x[src], x[dst], edge_attr], dim=-1)) / 2
 
         x   = x[edge_index.T].reshape(-1, 2 * self.n_hidden).relu()
         x   = torch.cat((x, edge_attr.view(-1, edge_attr.shape[1])), 1)
