@@ -53,7 +53,7 @@ def create_parser():
     #Modifications © 2025 Kaori Ishikawa
     #Modified parser for "unique_name" to allow users to add a unique name to the title of trained model when it's saved.
     #Model will be saved as "checkpoint_[specified name].tar"
-    parser.add_argument("--unique_name", type=str, required=True, help="Unique name under which the model will be stored.")
+    parser.add_argument("--unique_name", type=str, help="Unique name under which the model will be stored.")
 
     parser.add_argument("--finetune", action='store_true', help="Fine-tune a model. Note that args.unique_name needs to point to the pre-trained model.")
     parser.add_argument("--inference", action='store_true', help="Load a trained model and only do AML inference with it. args.unique name needs to point to the trained model.")
